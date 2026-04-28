@@ -63,23 +63,39 @@ async function main() {
   const directions = [SwipeDirection.LIKE, SwipeDirection.NOPE]
   let swipeCount = 0
 
+  // Pairs that are guaranteed to be mutual LIKEs (indices into `users`)
+  // This ensures every account has visible matches for testing
+  const guaranteedMatches: [number, number][] = [
+    [0, 1], [0, 2], [0, 3],
+    [1, 2], [1, 4],
+    [2, 5], [3, 6],
+    [4, 7], [5, 8],
+  ]
+  const guaranteedSet = new Set(
+    guaranteedMatches.flatMap(([a, b]) => [
+      `${users[a]?.id}:${users[b]?.id}`,
+      `${users[b]?.id}:${users[a]?.id}`,
+    ])
+  )
+
   for (const fromUser of users) {
     for (const toUser of users) {
       if (fromUser.id === toUser.id) continue
+      const isGuaranteed = guaranteedSet.has(`${fromUser.id}:${toUser.id}`)
       await prisma.swipe.upsert({
         where: { fromUserId_toUserId: { fromUserId: fromUser.id, toUserId: toUser.id } },
         update: {},
         create: {
           fromUserId: fromUser.id,
           toUserId: toUser.id,
-          direction: directions[randomInt(0, 1)],
+          direction: isGuaranteed ? SwipeDirection.LIKE : directions[randomInt(0, 1)],
         },
       })
       swipeCount++
     }
   }
 
-  console.log(`Upserted ${swipeCount} swipes`)
+  console.log(`Upserted ${swipeCount} swipes (including guaranteed mutual matches)`)
 }
 
 main()

@@ -17,6 +17,8 @@ model User {
   profile   Profile?
   swipesMade Swipe[] @relation("swipesMade")
   swipesGot  Swipe[] @relation("swipesGot")
+  messagesSent     Message[] @relation("messagesSent")
+  messagesReceived Message[] @relation("messagesReceived")
 }
 
 model Profile {
@@ -59,4 +61,18 @@ model Swipe {
 enum SwipeDirection {
   LIKE
   NOPE
+}
+
+model Message {
+  id         String   @id @default(cuid())
+  fromUserId String
+  toUserId   String
+  body       String
+  createdAt  DateTime @default(now())
+
+  fromUser   User     @relation("messagesSent",     fields: [fromUserId], references: [id])
+  toUser     User     @relation("messagesReceived", fields: [toUserId],   references: [id])
+
+  @@index([fromUserId, toUserId])
+  @@index([toUserId, fromUserId])
 }
