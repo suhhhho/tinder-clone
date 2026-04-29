@@ -16,6 +16,10 @@ type MatchUser = {
   } | null
 }
 
+type FetchMessagesResult =
+  | { ok: true; data: { messages: Message[]; myId: string | null; matchUser: MatchUser | null } }
+  | { ok: false; error: string }
+
 export default function ChatPage() {
   const { status } = useSession()
   const router = useRouter()
@@ -37,42 +41,67 @@ export default function ChatPage() {
     if (status === 'unauthenticated') router.push('/login')
   }, [status, router])
 
-  const fetchMessages = useCallback(async (isInitial = false) => {
+  const fetchMessages = useCallback(async (): Promise<FetchMessagesResult> => {
     if (!matchId) return
     try {
       const res = await fetch(`/api/messages/${matchId}`, { credentials: 'include' })
       if (!res.ok) {
-        if (isInitial) {
-          const body = await res.json().catch(() => ({}))
-          setError(body.error ?? `Error ${res.status}`)
-          setLoading(false)
-        }
-        return
+        const body = await res.json().catch(() => ({}))
+        return { ok: false, error: body.error ?? `Error ${res.status}` }
       }
       const data = await res.json()
-      setMessages(data.messages ?? [])
-      setMyId(data.myId)
-      setMatchUser(data.matchUser)
-      setLoading(false)
-      setError(null)
-    } catch {
-      if (isInitial) {
-        setError('Could not load chat. Please try again.')
-        setLoading(false)
+      return {
+        ok: true,
+        data: {
+          messages: data.messages ?? [],
+          myId: data.myId ?? null,
+          matchUser: data.matchUser ?? null,
+        },
       }
+    } catch {
+      return { ok: false, error: 'Could not load chat. Please try again.' }
     }
   }, [matchId])
 
   // Initial load
   useEffect(() => {
     if (status !== 'authenticated') return
-    fetchMessages(true)
+    let cancelled = false
+
+    async function loadInitial() {
+      const result = await fetchMessages()
+      if (!result || cancelled) return
+
+      if (!result.ok) {
+        setError(result.error)
+        setLoading(false)
+        return
+      }
+
+      setMessages(result.data.messages)
+      setMyId(result.data.myId)
+      setMatchUser(result.data.matchUser)
+      setError(null)
+      setLoading(false)
+    }
+
+    void loadInitial()
+
+    return () => {
+      cancelled = true
+    }
   }, [status, fetchMessages])
 
   // Poll every 3 seconds for new messages
   useEffect(() => {
     if (status !== 'authenticated') return
-    const id = setInterval(() => fetchMessages(false), 3000)
+    const id = setInterval(async () => {
+      const result = await fetchMessages()
+      if (!result || !result.ok) return
+      setMessages(result.data.messages)
+      setMyId(result.data.myId)
+      setMatchUser(result.data.matchUser)
+    }, 3000)
     return () => clearInterval(id)
   }, [status, fetchMessages])
 
@@ -93,7 +122,13 @@ export default function ChatPage() {
       credentials: 'include',
       body: JSON.stringify({ body }),
     })
-    await fetchMessages(false)
+    const result = await fetchMessages()
+    if (result && result.ok) {
+      setMessages(result.data.messages)
+      setMyId(result.data.myId)
+      setMatchUser(result.data.matchUser)
+      setError(null)
+    }
     setSending(false)
     inputRef.current?.focus()
   }

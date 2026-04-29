@@ -5,19 +5,21 @@ import Link from 'next/link'
 import { useSession, signOut } from 'next-auth/react'
 import { languages, LangCode, Translations } from '@/lib/i18n'
 
+function getInitialLang(): LangCode {
+  if (typeof window === 'undefined') return 'en'
+  const stored = localStorage.getItem('lang') as LangCode | null
+  return stored && languages[stored] ? stored : 'en'
+}
+
 export function Navbar({ onLangChange }: { onLangChange?: (t: Translations) => void }) {
   const { data: session } = useSession()
-  const [lang, setLang] = useState<LangCode>('en')
+  const [lang, setLang] = useState<LangCode>(getInitialLang)
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Hydration-safe language restore for logged-out and logged-in flows.
   useEffect(() => {
-    const stored = localStorage.getItem('lang') as LangCode | null
-    const nextLang = stored && languages[stored] ? stored : 'en'
-    setLang(nextLang)
-    onLangChange?.(languages[nextLang])
-  }, [onLangChange])
+    onLangChange?.(languages[lang])
+  }, [lang, onLangChange])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
