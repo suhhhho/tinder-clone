@@ -3,6 +3,34 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
+const AUTO_REPLIES = [
+  'Haha fair point 😄',
+  'Love that energy!',
+  'That sounds fun, tell me more 👀',
+  'I am into that idea',
+  'Nice! What are you up to today?',
+  'You seem cool already 😌',
+  'I would definitely do that',
+  'Okay wait, now I am curious',
+]
+
+function pickAutoReply(input: string) {
+  const text = input.toLowerCase().trim()
+  if (text.includes('?')) {
+    return 'Good question 😄 what do you think?'
+  }
+  if (text.includes('hi') || text.includes('hello') || text.includes('hey')) {
+    return 'Hey you 👋 nice to chat with you!'
+  }
+  if (text.includes('coffee')) {
+    return 'Coffee date sounds perfect ☕'
+  }
+  if (text.includes('music')) {
+    return 'Now we are talking. What is on your playlist? 🎵'
+  }
+  return AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)]
+}
+
 // GET  /api/messages/[matchId]  — fetch conversation
 export async function GET(_req: Request, { params }: { params: Promise<{ matchId: string }> }) {
   const session = await getServerSession(authOptions)
@@ -87,6 +115,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ matchId
 
   const message = await prisma.message.create({
     data: { fromUserId: me.id, toUserId: matchId, body: body.trim() },
+  })
+
+  // Test helper: auto-reply as the matched user to keep chat active.
+  await prisma.message.create({
+    data: {
+      fromUserId: matchId,
+      toUserId: me.id,
+      body: pickAutoReply(body),
+    },
   })
 
   return NextResponse.json(message)
