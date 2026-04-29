@@ -36,3 +36,17 @@ export async function POST(req: Request) {
 
   return NextResponse.json({ ok: true, match })
 }
+
+export async function DELETE() {
+  const session = await getServerSession(authOptions)
+  if (!session?.user?.email) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const me = await prisma.user.findUnique({ where: { email: session.user.email } })
+  if (!me) return NextResponse.json({ error: 'User not found' }, { status: 404 })
+
+  await prisma.swipe.deleteMany({ where: { fromUserId: me.id } })
+
+  return NextResponse.json({ ok: true })
+}

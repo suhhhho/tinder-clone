@@ -20,6 +20,7 @@ export default function SwipePage() {
   const [superLikesLeft, setSuperLikesLeft] = useState(3)
   const [showSuperModal, setShowSuperModal] = useState(false)
   const [superSent, setSuperSent] = useState(false)
+  const [resetting, setResetting] = useState(false)
 
   useEffect(() => {
     if (status === 'unauthenticated') router.push('/login')
@@ -80,6 +81,17 @@ export default function SwipePage() {
     await swipe('super')
   }
 
+  async function resetSwipes() {
+    setResetting(true)
+    await fetch('/api/swipe', { method: 'DELETE', credentials: 'include' })
+    const res = await fetch('/api/swipe/cards', { credentials: 'include' })
+    const data = await res.json()
+    setCards(Array.isArray(data) ? data : [])
+    setCurrent(0)
+    setPhotoIndex(0)
+    setResetting(false)
+  }
+
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.key === 'ArrowLeft') swipe('left')
@@ -122,7 +134,7 @@ export default function SwipePage() {
                 Keep swiping
               </button>
               <button
-                onClick={() => router.push('/')}
+                onClick={() => router.push(`/chat/${match.id}`)}
                 className="px-8 py-3 rounded-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold"
               >
                 Send message
@@ -134,7 +146,14 @@ export default function SwipePage() {
           <div className="text-center">
             <div className="text-7xl mb-4">😅</div>
             <h2 className="text-white text-2xl font-bold mb-2">You&apos;ve seen everyone!</h2>
-            <p className="text-white/50">Check back later for new people.</p>
+            <p className="text-white/50 mb-6">Check back later for new people.</p>
+            <button
+              onClick={resetSwipes}
+              disabled={resetting}
+              className="px-8 py-3 rounded-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-semibold disabled:opacity-50"
+            >
+              {resetting ? 'Resetting…' : 'Start over 🔄'}
+            </button>
           </div>
         ) : (
           <>

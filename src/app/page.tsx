@@ -1,9 +1,145 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useSession, signOut } from 'next-auth/react'
+import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
 import { languages, Translations } from '@/lib/i18n'
 
+type Photo = { id: string; url: string; order: number }
+type Profile = { bio: string | null; age: number | null; photos: Photo[] }
+type MatchUser = { id: string; name: string | null; profile: Profile | null }
+
+// ─── Logged-in dashboard ────────────────────────────────────────────────────
+function LoggedInHome({ userName }: { userName: string }) {
+  const router = useRouter()
+  const [matches, setMatches] = useState<MatchUser[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    fetch('/api/matches', { credentials: 'include' })
+      .then((r) => r.json())
+      .then((data) => {
+        setMatches(Array.isArray(data) ? data : [])
+        setLoading(false)
+      })
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-zinc-950 flex flex-col">
+      {/* Top bar */}
+      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
+        <span className="text-white font-black text-2xl">🔥 tinder</span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => router.push('/onboarding?edit=true')}
+            className="text-white/50 hover:text-white text-sm transition-colors"
+          >
+            Profile
+          </button>
+          <button
+            onClick={() => signOut({ callbackUrl: '/' })}
+            className="text-white/50 hover:text-white text-sm transition-colors"
+          >
+            Log out
+          </button>
+          <button
+            onClick={() => router.push('/swipe')}
+            className="bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold text-sm px-5 py-2 rounded-full hover:opacity-90 transition-opacity"
+          >
+            Start Swiping →
+          </button>
+        </div>
+      </header>
+
+      <main className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
+        {/* Greeting */}
+        <h1 className="text-white font-black text-3xl mb-1">
+          Hey, {userName.split(' ')[0]} 👋
+        </h1>
+        <p className="text-white/40 text-sm mb-8">Here&apos;s who liked you back.</p>
+
+        {/* Matches section */}
+        <section>
+          <h2 className="text-white font-bold text-lg mb-4">
+            Matches
+            {!loading && (
+              <span className="ml-2 text-pink-400 text-sm font-semibold">
+                {matches.length}
+              </span>
+            )}
+          </h2>
+
+          {loading ? (
+            <div className="flex gap-3">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="w-20 h-20 rounded-full bg-zinc-800 animate-pulse" />
+              ))}
+            </div>
+          ) : matches.length === 0 ? (
+            <div className="bg-zinc-900 rounded-2xl p-8 text-center border border-white/5">
+              <div className="text-5xl mb-3">💤</div>
+              <p className="text-white/60 text-sm">No matches yet — start swiping!</p>
+              <button
+                onClick={() => router.push('/swipe')}
+                className="mt-4 bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold text-sm px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
+              >
+                Go Swipe
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-wrap gap-4">
+              {matches.map((m) => {
+                const photo = m.profile?.photos?.[0]?.url
+                return (
+                  <button
+                    key={m.id}
+                    onClick={() => router.push(`/chat/${m.id}`)}
+                    className="flex flex-col items-center gap-1 w-20 group"
+                  >
+                    <div className="w-20 h-20 rounded-full overflow-hidden border-2 border-pink-500 shrink-0 group-hover:border-pink-400 transition-colors">
+                      {photo ? (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={photo} alt={m.name ?? ''} className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-2xl">👤</div>
+                      )}
+                    </div>
+                    <span className="text-white/70 text-xs text-center truncate w-full group-hover:text-white transition-colors">
+                      {m.name?.split(' ')[0] ?? 'Unknown'}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          )}
+        </section>
+
+        {/* Quick actions */}
+        <section className="mt-10 grid grid-cols-2 gap-4">
+          <button
+            onClick={() => router.push('/swipe')}
+            className="bg-zinc-900 border border-white/5 rounded-2xl p-5 text-left hover:border-pink-500/30 transition-colors"
+          >
+            <div className="text-3xl mb-2">🔥</div>
+            <p className="text-white font-semibold text-sm">Discover</p>
+            <p className="text-white/40 text-xs mt-1">Swipe on new people</p>
+          </button>
+          <button
+            onClick={() => router.push('/onboarding?edit=true')}
+            className="bg-zinc-900 border border-white/5 rounded-2xl p-5 text-left hover:border-pink-500/30 transition-colors"
+          >
+            <div className="text-3xl mb-2">✏️</div>
+            <p className="text-white font-semibold text-sm">Edit Profile</p>
+            <p className="text-white/40 text-xs mt-1">Update your info &amp; photos</p>
+          </button>
+        </section>
+      </main>
+    </div>
+  )
+}
+
+// ─── Marketing / landing page assets ────────────────────────────────────────
 const profiles = [
   { name: "Emma",      age: 24, photo: "women/1" },
   { name: "Liam",      age: 26, photo: "men/1" },
@@ -48,7 +184,7 @@ function PhoneCard({ name, age, photo }: { name: string; age: number; photo: str
         alt={name}
         className="w-full h-64 object-cover"
       />
-      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3">
+      <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-3">
         <p className="text-white font-semibold text-sm">{name} {age}</p>
       </div>
       <div className="absolute bottom-10 left-0 right-0 flex justify-center gap-2 px-2">
@@ -59,9 +195,30 @@ function PhoneCard({ name, age, photo }: { name: string; age: number; photo: str
   )
 }
 
+// ─── Root component ──────────────────────────────────────────────────────────
 export default function Home() {
-  const [t, setT] = useState<Translations>(languages.en)
+  const { data: session, status } = useSession()
+  const [t, setT] = useState<Translations>(() => {
+    if (typeof window === 'undefined') return languages.en
+    const stored = localStorage.getItem('lang') as LangCode | null
+    return (stored && languages[stored]) ? languages[stored] : languages.en
+  })
+  const handleLangChange = useCallback((next: Translations) => setT(next), [])
 
+  // While session is loading, show nothing (avoids flash)
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-pink-500 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (session?.user) {
+    return <LoggedInHome userName={session.user.name ?? session.user.email ?? 'there'} />
+  }
+
+  // ── Marketing / landing page ──
   return (
     <div className="relative min-h-screen bg-black overflow-hidden">
       {/* Background phone grid */}
@@ -88,7 +245,7 @@ export default function Home() {
       {/* Dark overlay */}
       <div className="absolute inset-0 bg-black/50" />
 
-      <Navbar onLangChange={setT} />
+      <Navbar onLangChange={handleLangChange} />
 
       {/* Hero */}
       <main className="relative z-10 flex flex-col items-center justify-center min-h-[80vh] text-center px-4">
@@ -97,7 +254,7 @@ export default function Home() {
         </h1>
         <a
           href="/register"
-          className="mt-10 bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold text-lg px-10 py-4 rounded-full shadow-lg hover:opacity-90 transition-opacity"
+          className="mt-10 bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold text-lg px-10 py-4 rounded-full shadow-lg hover:opacity-90 transition-opacity"
         >
           {t.hero.cta}
         </a>
