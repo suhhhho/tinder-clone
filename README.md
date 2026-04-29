@@ -1,36 +1,95 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tinder Clone (Student MVP)
 
-## Getting Started
+Full-stack dating app built with Next.js App Router, Prisma, PostgreSQL, and NextAuth.
 
-First, run the development server:
+## Features
+
+- Email/password registration and login
+- JWT-based authenticated sessions with protected routes
+- Multi-step onboarding and profile editing
+- Photo uploads and ordered profile gallery
+- Swipe deck with LIKE/NOPE actions
+- Mutual matching based on reciprocal likes
+- Persistent chat per match
+- Optional demo auto-replies via environment flag
+- Four-language UI support (EN, UA, RU, DE)
+- Marketing landing page and static info pages
+
+## Tech Stack
+
+- Next.js 16 (App Router)
+- TypeScript
+- Prisma ORM
+- PostgreSQL
+- NextAuth (credentials provider)
+- Tailwind CSS v4
+
+## Quick Start
+
+### 1) Install dependencies
+
+```bash
+npm install
+```
+
+### 2) Configure environment
+
+Copy `.env.example` to `.env` and update values if needed.
+
+Required variables:
+
+- `DATABASE_URL`
+- `NEXTAUTH_SECRET`
+- `NEXTAUTH_URL`
+- `AUTO_REPLY` (optional demo mode)
+
+### 3) Start PostgreSQL with Docker
+
+```bash
+docker-compose up -d
+```
+
+### 4) Run migrations
+
+```bash
+npx prisma migrate dev
+```
+
+### 5) Seed demo data
+
+```bash
+npm run seed
+```
+
+### 6) Run app
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Demo Notes
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- If `AUTO_REPLY=true`, matched users generate instant auto-responses in chat for demo purposes.
+- Swipe reset is available from the swipe UI.
+- Uploaded media is written to `public/uploads/` and ignored by git.
 
-## Learn More
+## Project Structure (high-level)
 
-To learn more about Next.js, take a look at the following resources:
+- `src/app`: pages and API routes
+- `src/components`: shared UI components
+- `src/lib`: auth, Prisma client, i18n helpers
+- `prisma`: schema, migrations, seeds
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Known Limitations
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Chat currently uses polling, not WebSockets/SSE.
+- Some UX states are demo-oriented (for example, optional auto-replies).
 
-## Deploy on Vercel
+## Useful Commands
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `npm run dev`: run dev server
+- `npm run build`: production build
+- `npm run lint`: lint check
+- `npm run seed`: seed database
