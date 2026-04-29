@@ -1,10 +1,10 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { useSession, signOut } from 'next-auth/react'
+import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { Navbar } from '@/components/Navbar'
-import { languages, Translations } from '@/lib/i18n'
+import { languages, LangCode, Translations } from '@/lib/i18n'
 
 type Photo = { id: string; url: string; order: number }
 type Profile = { bio: string | null; age: number | null; photos: Photo[] }
@@ -15,6 +15,12 @@ function LoggedInHome({ userName }: { userName: string }) {
   const router = useRouter()
   const [matches, setMatches] = useState<MatchUser[]>([])
   const [loading, setLoading] = useState(true)
+  const [t, setT] = useState<Translations>(() => {
+    if (typeof window === 'undefined') return languages.en
+    const stored = localStorage.getItem('lang') as LangCode | null
+    return (stored && languages[stored]) ? languages[stored] : languages.en
+  })
+  const handleLangChange = useCallback((next: Translations) => setT(next), [])
 
   useEffect(() => {
     fetch('/api/matches', { credentials: 'include' })
@@ -27,42 +33,34 @@ function LoggedInHome({ userName }: { userName: string }) {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex flex-col">
-      {/* Top bar */}
-      <header className="flex items-center justify-between px-6 py-4 border-b border-white/5">
-        <span className="text-white font-black text-2xl">🔥 tinder</span>
-        <div className="flex items-center gap-3">
+      <Navbar onLangChange={handleLangChange} />
+
+      <main className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
+        <div className="flex items-center justify-end gap-3 mb-6">
           <button
             onClick={() => router.push('/onboarding?edit=true')}
             className="text-white/50 hover:text-white text-sm transition-colors"
           >
-            Profile
-          </button>
-          <button
-            onClick={() => signOut({ callbackUrl: '/' })}
-            className="text-white/50 hover:text-white text-sm transition-colors"
-          >
-            Log out
+            {t.dashboard.profile}
           </button>
           <button
             onClick={() => router.push('/swipe')}
             className="bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold text-sm px-5 py-2 rounded-full hover:opacity-90 transition-opacity"
           >
-            Start Swiping →
+            {t.dashboard.startSwiping} →
           </button>
         </div>
-      </header>
 
-      <main className="flex-1 px-6 py-8 max-w-2xl mx-auto w-full">
         {/* Greeting */}
         <h1 className="text-white font-black text-3xl mb-1">
-          Hey, {userName.split(' ')[0]} 👋
+          {t.dashboard.hello}, {userName.split(' ')[0]} 👋
         </h1>
-        <p className="text-white/40 text-sm mb-8">Here&apos;s who liked you back.</p>
+        <p className="text-white/40 text-sm mb-8">{t.dashboard.likedYouBack}</p>
 
         {/* Matches section */}
         <section>
           <h2 className="text-white font-bold text-lg mb-4">
-            Matches
+            {t.dashboard.matches}
             {!loading && (
               <span className="ml-2 text-pink-400 text-sm font-semibold">
                 {matches.length}
@@ -79,12 +77,12 @@ function LoggedInHome({ userName }: { userName: string }) {
           ) : matches.length === 0 ? (
             <div className="bg-zinc-900 rounded-2xl p-8 text-center border border-white/5">
               <div className="text-5xl mb-3">💤</div>
-              <p className="text-white/60 text-sm">No matches yet — start swiping!</p>
+              <p className="text-white/60 text-sm">{t.dashboard.noMatches}</p>
               <button
                 onClick={() => router.push('/swipe')}
                 className="mt-4 bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold text-sm px-6 py-2 rounded-full hover:opacity-90 transition-opacity"
               >
-                Go Swipe
+                {t.dashboard.goSwipe}
               </button>
             </div>
           ) : (
@@ -122,16 +120,16 @@ function LoggedInHome({ userName }: { userName: string }) {
             className="bg-zinc-900 border border-white/5 rounded-2xl p-5 text-left hover:border-pink-500/30 transition-colors"
           >
             <div className="text-3xl mb-2">🔥</div>
-            <p className="text-white font-semibold text-sm">Discover</p>
-            <p className="text-white/40 text-xs mt-1">Swipe on new people</p>
+            <p className="text-white font-semibold text-sm">{t.dashboard.discover}</p>
+            <p className="text-white/40 text-xs mt-1">{t.dashboard.discoverSub}</p>
           </button>
           <button
             onClick={() => router.push('/onboarding?edit=true')}
             className="bg-zinc-900 border border-white/5 rounded-2xl p-5 text-left hover:border-pink-500/30 transition-colors"
           >
             <div className="text-3xl mb-2">✏️</div>
-            <p className="text-white font-semibold text-sm">Edit Profile</p>
-            <p className="text-white/40 text-xs mt-1">Update your info &amp; photos</p>
+            <p className="text-white font-semibold text-sm">{t.dashboard.editProfile}</p>
+            <p className="text-white/40 text-xs mt-1">{t.dashboard.editProfileSub}</p>
           </button>
         </section>
       </main>

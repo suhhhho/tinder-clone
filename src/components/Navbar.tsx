@@ -7,19 +7,17 @@ import { languages, LangCode, Translations } from '@/lib/i18n'
 
 export function Navbar({ onLangChange }: { onLangChange?: (t: Translations) => void }) {
   const { data: session } = useSession()
-  const [lang, setLang] = useState<LangCode>(() => {
-    if (typeof window === 'undefined') return 'en'
-    const stored = localStorage.getItem('lang') as LangCode | null
-    return (stored && languages[stored]) ? stored : 'en'
-  })
+  const [lang, setLang] = useState<LangCode>('en')
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
-  // Only notify parent on mount if stored lang differs from default
+  // Hydration-safe language restore for logged-out and logged-in flows.
   useEffect(() => {
-    if (lang !== 'en') onLangChange?.(languages[lang])
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+    const stored = localStorage.getItem('lang') as LangCode | null
+    const nextLang = stored && languages[stored] ? stored : 'en'
+    setLang(nextLang)
+    onLangChange?.(languages[nextLang])
+  }, [onLangChange])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -39,64 +37,74 @@ export function Navbar({ onLangChange }: { onLangChange?: (t: Translations) => v
   const t = languages[lang].nav
 
   return (
-    <header className="relative z-10 flex items-center justify-between px-8 py-5">
-      <div className="flex items-center gap-8">
-        <Link href="/" className="text-white font-bold text-2xl flex items-center gap-1">
-          <span className="text-pink-500">🔥</span> tinder
-        </Link>
-        <nav className="hidden md:flex gap-6 text-white/80 text-sm font-medium">
-          <a href="#" className="hover:text-white transition-colors">{t.products}</a>
-          <a href="#" className="hover:text-white transition-colors">{t.about}</a>
-          <a href="#" className="hover:text-white transition-colors">{t.safety}</a>
-          <a href="#" className="hover:text-white transition-colors">{t.support}</a>
-          <a href="#" className="hover:text-white transition-colors">{t.download}</a>
-        </nav>
-      </div>
-
-      <div className="flex items-center gap-4">
-        {/* Language switcher */}
-        <div className="relative" ref={ref}>
-          <button
-            onClick={() => setOpen(!open)}
-            className="text-white/80 text-sm hover:text-white transition-colors flex items-center gap-1"
-          >
-            🌐 {languages[lang].label}
-          </button>
-          {open && (
-            <div className="absolute right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 min-w-[140px]">
-              {(Object.keys(languages) as LangCode[]).map((code) => (
-                <button
-                  key={code}
-                  onClick={() => selectLang(code)}
-                  className={`w-full text-left px-4 py-2 text-sm transition-colors ${
-                    lang === code
-                      ? 'text-pink-400 bg-white/5'
-                      : 'text-white/80 hover:bg-white/5 hover:text-white'
-                  }`}
-                >
-                  {languages[code].label}
-                </button>
-              ))}
-            </div>
-          )}
+    <>
+      <header className="relative z-10 flex items-center justify-between px-8 py-5">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="text-white font-bold text-2xl flex items-center gap-1">
+            <span className="text-pink-500">🔥</span> tinder
+          </Link>
+          <nav className="hidden md:flex gap-6 text-white/80 text-sm font-medium">
+            <Link href="/" className="hover:text-white transition-colors">{t.products}</Link>
+            <Link href="/about" className="hover:text-white transition-colors">{t.about}</Link>
+            <Link href="/safety" className="hover:text-white transition-colors">{t.safety}</Link>
+            <Link href="/support" className="hover:text-white transition-colors">{t.support}</Link>
+            <Link href="/download" className="hover:text-white transition-colors">{t.download}</Link>
+          </nav>
         </div>
 
-        {session ? (
-          <button
-            onClick={() => signOut()}
-            className="border border-white text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-white hover:text-black transition-colors"
-          >
-            Log out
-          </button>
-        ) : (
-          <Link
-            href="/login"
-            className="border border-white text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-white hover:text-black transition-colors"
-          >
-            {t.login}
-          </Link>
-        )}
-      </div>
-    </header>
+        <div className="flex items-center gap-4">
+          {/* Language switcher */}
+          <div className="relative" ref={ref}>
+            <button
+              onClick={() => setOpen(!open)}
+              className="text-white/80 text-sm hover:text-white transition-colors flex items-center gap-1"
+            >
+              🌐 {languages[lang].label}
+            </button>
+            {open && (
+              <div className="absolute right-0 mt-2 bg-zinc-900 border border-white/10 rounded-xl overflow-hidden shadow-xl z-50 min-w-35">
+                {(Object.keys(languages) as LangCode[]).map((code) => (
+                  <button
+                    key={code}
+                    onClick={() => selectLang(code)}
+                    className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                      lang === code
+                        ? 'text-pink-400 bg-white/5'
+                        : 'text-white/80 hover:bg-white/5 hover:text-white'
+                    }`}
+                  >
+                    {languages[code].label}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {session ? (
+            <button
+              onClick={() => signOut()}
+              className="border border-white text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-white hover:text-black transition-colors"
+            >
+              {t.logout}
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              className="border border-white text-white text-sm font-semibold px-5 py-2 rounded-full hover:bg-white hover:text-black transition-colors"
+            >
+              {t.login}
+            </Link>
+          )}
+        </div>
+      </header>
+
+      <nav className="md:hidden relative z-10 px-6 pb-3 flex flex-wrap gap-4 text-white/75 text-sm font-medium">
+        <Link href="/" className="hover:text-white transition-colors">{t.products}</Link>
+        <Link href="/about" className="hover:text-white transition-colors">{t.about}</Link>
+        <Link href="/safety" className="hover:text-white transition-colors">{t.safety}</Link>
+        <Link href="/support" className="hover:text-white transition-colors">{t.support}</Link>
+        <Link href="/download" className="hover:text-white transition-colors">{t.download}</Link>
+      </nav>
+    </>
   )
 }
