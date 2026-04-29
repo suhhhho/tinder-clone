@@ -1,13 +1,21 @@
 import { NextResponse } from 'next/server'
 import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/prisma'
+import { z } from 'zod'
+
+const registerSchema = z.object({
+  name: z.string().trim().min(1).max(80).optional(),
+  email: z.string().email().max(255),
+  password: z.string().min(8).max(128),
+})
 
 export async function POST(req: Request) {
-  const { name, email, password } = await req.json()
-
-  if (!email || !password) {
-    return NextResponse.json({ error: 'Email and password are required' }, { status: 400 })
+  const parsed = registerSchema.safeParse(await req.json())
+  if (!parsed.success) {
+    return NextResponse.json({ error: 'Invalid registration payload' }, { status: 400 })
   }
+
+  const { name, email, password } = parsed.data
 
   const existing = await prisma.user.findUnique({ where: { email } })
   if (existing) {
