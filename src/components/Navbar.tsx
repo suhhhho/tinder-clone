@@ -7,17 +7,19 @@ import { languages, LangCode, Translations } from '@/lib/i18n'
 
 export function Navbar({ onLangChange }: { onLangChange?: (t: Translations) => void }) {
   const { data: session } = useSession()
-  const [lang, setLang] = useState<LangCode>('en')
+  const [lang, setLang] = useState<LangCode>(() => {
+    if (typeof window === 'undefined') return 'en'
+    const stored = localStorage.getItem('lang') as LangCode | null
+    return (stored && languages[stored]) ? stored : 'en'
+  })
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
+  // Only notify parent on mount if stored lang differs from default
   useEffect(() => {
-    const stored = localStorage.getItem('lang') as LangCode | null
-    if (stored && languages[stored]) {
-      setLang(stored)
-      onLangChange?.(languages[stored])
-    }
-  }, [onLangChange])
+    if (lang !== 'en') onLangChange?.(languages[lang])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {

@@ -11,13 +11,18 @@ export async function GET() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    include: { profile: true },
+    include: { profile: { include: { photos: { orderBy: { order: 'asc' } } } } },
   })
 
   if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   const complete = !!(user.profile?.bio && user.profile?.age && user.profile?.gender && user.name)
-  return NextResponse.json({ complete, profile: user.profile })
+  return NextResponse.json({
+    complete,
+    name: user.name,
+    profile: user.profile,
+    photos: user.profile?.photos ?? [],
+  })
 }
 
 export async function PATCH(req: Request) {

@@ -1,7 +1,8 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 
 const STEPS = ['basics', 'bio', 'photos', 'done'] as const
 type Step = (typeof STEPS)[number]
@@ -11,8 +12,11 @@ interface UploadedPhoto {
   url: string
 }
 
-export default function OnboardingPage() {
+function OnboardingContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const isEdit = searchParams.get('edit') === 'true'
+
   const [step, setStep] = useState<Step>('basics')
   const [form, setForm] = useState({ name: '', age: '', gender: '', bio: '' })
   const [photos, setPhotos] = useState<UploadedPhoto[]>([])
@@ -22,10 +26,27 @@ export default function OnboardingPage() {
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
-    fetch('/api/profile').then(r => r.json()).then(data => {
-      if (data.complete) router.replace('/')
-    })
-  }, [router])
+    fetch('/api/profile', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => {
+        if (isEdit) {
+          // Pre-populate form with existing data
+          if (data.profile) {
+            setForm({
+              name: data.name ?? '',
+              age: data.profile.age ? String(data.profile.age) : '',
+              gender: data.profile.gender ?? '',
+              bio: data.profile.bio ?? '',
+            })
+          }
+          if (Array.isArray(data.photos)) {
+            setPhotos(data.photos)
+          }
+        } else if (data.complete) {
+          router.replace('/')
+        }
+      })
+  }, [router, isEdit])
 
   function next() {
     setStep((s) => {
@@ -275,20 +296,30 @@ export default function OnboardingPage() {
           {step === 'done' && (
             <div className="text-center py-4">
               <div className="text-6xl mb-4">🎉</div>
-              <h2 className="text-white text-2xl font-bold mb-2">You&apos;re all set!</h2>
+              <h2 className="text-white text-2xl font-bold mb-2">
+                {isEdit ? 'Profile updated!' : "You're all set!"}
+              </h2>
               <p className="text-white/50 text-sm mb-8">
-                Your profile is ready. Time to start swiping.
+                {isEdit ? 'Your changes have been saved.' : 'Your profile is ready. Time to start swiping.'}
               </p>
               <button
-                onClick={() => router.push('/swipe')}
-                className="w-full bg-gradient-to-r from-pink-500 to-orange-400 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"
+                onClick={() => router.push(isEdit ? '/' : '/swipe')}
+                className="w-full bg-linear-to-r from-pink-500 to-orange-400 text-white font-bold py-3 rounded-xl hover:opacity-90 transition-opacity"
               >
-                Start swiping 🔥
+                {isEdit ? 'Back to home' : 'Start swiping 🔥'}
               </button>
             </div>
           )}
         </div>
       </div>
     </div>
+  )
+}
+
+export default function OnboardingPage() {
+  return (
+    <Suspense>
+      <OnboardingContent />
+    </Suspense>
   )
 }
