@@ -1,16 +1,12 @@
 import { NextResponse } from 'next/server'
-import { getServerSession } from 'next-auth'
-import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import { requireUser } from '@/lib/auth'
 
 export async function GET() {
-  const session = await getServerSession(authOptions)
-  if (!session?.user?.email) {
+  const me = await requireUser()
+  if (!me) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
-
-  const me = await prisma.user.findUnique({ where: { email: session.user.email } })
-  if (!me) return NextResponse.json({ error: 'User not found' }, { status: 404 })
 
   // IDs I liked
   const myLikes = await prisma.swipe.findMany({
@@ -19,8 +15,8 @@ export async function GET() {
   })
   const myLikedIds = myLikes.map((s) => s.toUserId)
 
-  // Among those, who also liked me back?
-  const mutualSwipes = await prisma.swipe.findMany({
+  // Incoming likes from users that I already liked.
+  const reciprocalLikes = await prisma.swipe.findMany({
     where: {
       fromUserId: { in: myLikedIds },
       toUserId: me.id,
@@ -35,6 +31,6 @@ export async function GET() {
     },
   })
 
-  const matches = mutualSwipes.map((s) => s.fromUser)
+  const matches = reciprocalLikes.map((s) => s.fromUser)
   return NextResponse.json(matches)
 }
