@@ -1,4 +1,5 @@
 import { PrismaClient, SwipeDirection } from '@prisma/client'
+import bcrypt from 'bcryptjs'
 
 const prisma = new PrismaClient()
 
@@ -31,15 +32,22 @@ function randomInt(min: number, max: number) {
 }
 
 async function main() {
+  const seededPassword = 'DemoPass123!'
+  const seededPasswordHash = await bcrypt.hash(seededPassword, 12)
+
   // Create users with profiles and photos
   const created = await Promise.all(
     people.map(({ name, email, bio, photos }) =>
       prisma.user.upsert({
         where: { email },
-        update: {},
+        update: {
+          name,
+          password: seededPasswordHash,
+        },
         create: {
           email,
           name,
+          password: seededPasswordHash,
           profile: {
             create: {
               bio,
@@ -57,6 +65,7 @@ async function main() {
   )
 
   console.log(`Upserted ${created.length} users with profiles and photos`)
+  console.log(`Seeded login password for all demo accounts: ${seededPassword}`)
 
   // Seed swipes between all users
   const users = await prisma.user.findMany()

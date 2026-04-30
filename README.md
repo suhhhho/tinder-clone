@@ -69,6 +69,24 @@ npm run dev
 
 Open http://localhost:3000
 
+## Demo Accounts
+
+After running seed, demo users are available with the same password:
+
+- Password for all seeded users: DemoPass123!
+- Account 1: emma.johnson@example.com
+- Account 2: liam.smith@example.com
+
+You can also register your own account from the UI.
+
+## Screenshots
+
+Add screenshots here before submission:
+
+- Landing page: docs/screenshots/landing.png
+- Swipe deck: docs/screenshots/swipe.png
+- Chat view: docs/screenshots/chat.png
+
 ## Demo Notes
 
 - If `AUTO_REPLY=true`, matched users generate instant auto-responses in chat for demo purposes.
@@ -86,6 +104,12 @@ Open http://localhost:3000
 
 - Chat currently uses polling, not WebSockets/SSE.
 - Some UX states are demo-oriented (for example, optional auto-replies).
+
+## Future Work
+
+- Replace polling chat with realtime transport (SSE or WebSockets).
+- Add per-user rate limiting for swipe and message endpoints.
+- Add report and block flows with moderation actions.
 
 ## Useful Commands
 

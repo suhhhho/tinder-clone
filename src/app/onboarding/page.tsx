@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
+import Image from 'next/image'
 
 const STEPS = ['basics', 'bio', 'photos', 'done'] as const
 type Step = (typeof STEPS)[number]
@@ -234,7 +235,13 @@ function OnboardingContent() {
               <div className="grid grid-cols-3 gap-2 mb-6">
                 {photos.map((photo, i) => (
                   <div key={photo.id} className="relative aspect-3/4 rounded-xl overflow-hidden group">
-                    <img src={photo.url} alt={`Photo ${i + 1}`} className="w-full h-full object-cover" />
+                    <Image
+                      src={photo.url}
+                      alt={`Photo ${i + 1}`}
+                      fill
+                      sizes="(max-width: 768px) 30vw, 200px"
+                      className="object-cover"
+                    />
                     <button
                       onClick={() => handleDeletePhoto(photo.id)}
                       className="absolute top-1 right-1 bg-black/70 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
